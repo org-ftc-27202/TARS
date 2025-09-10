@@ -1,21 +1,14 @@
 package org.firstinspires.ftc.teamcode;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.internal.camera.calibration.CameraCalibration;
 import org.opencv.android.Utils;
-import org.opencv.core.Core;
 import org.opencv.core.Mat;
-import org.opencv.core.Point;
-import org.opencv.core.Scalar;
-import org.opencv.imgproc.Imgproc;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.VisionPortal.StreamFormat;
 import org.firstinspires.ftc.vision.VisionProcessor;
@@ -35,6 +28,10 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
 @TeleOp(name = "April Tags Test", group = "Robot")
 
 public class AprilTags extends LinearOpMode {
+    enum ArtifactColors {
+        GREEN,
+        PURPLE
+    }
 
     @SuppressLint("DefaultLocale")
 	@Override
@@ -75,20 +72,63 @@ public class AprilTags extends LinearOpMode {
             telemetry.addData("# AprilTags Detected", currentDetections.size());
 
             // Loop through each detection and display its info
+            boolean detectsBlueTag = false; //id 20
+            boolean detectsRedTag = false; //id 24
+            ArtifactColors[] artifactColors = new ArtifactColors[0];
+
             for (AprilTagDetection detection : currentDetections) {
                 if (detection.metadata != null) { // Check if metadata is available
+                    if (detection.metadata.id == 20) {
+                        detectsBlueTag = true;
+                    } else if (detection.metadata.id == 22) {
+                        detectsRedTag = true;
+                    }
+
+                    switch (detection.metadata.id) {
+                        case 21:
+                            artifactColors = new ArtifactColors[]{
+                                    ArtifactColors.GREEN,
+                                    ArtifactColors.PURPLE,
+                                    ArtifactColors.PURPLE
+                            };
+                        case 22:
+                            artifactColors = new ArtifactColors[]{
+                                    ArtifactColors.PURPLE,
+                                    ArtifactColors.GREEN,
+                                    ArtifactColors.PURPLE
+                            };
+                        case 23:
+                            artifactColors = new ArtifactColors[]{
+                                    ArtifactColors.PURPLE,
+                                    ArtifactColors.PURPLE,
+                                    ArtifactColors.GREEN
+                            };
+                    }
+                    /*
                     telemetry.addLine(String.format("\n==== ID %d (%s)", detection.id, detection.metadata.name));
                     telemetry.addLine(String.format("XYZ %6.1f %6.1f %6.1f  (inch)", detection.ftcPose.x, detection.ftcPose.y, detection.ftcPose.z));
                     telemetry.addLine(String.format("PRY %6.1f %6.1f %6.1f  (deg)", detection.ftcPose.pitch, detection.ftcPose.roll, detection.ftcPose.yaw));
                     telemetry.addLine(String.format("RBE %6.1f %6.1f %6.1f  (inch, deg, deg)", detection.ftcPose.range, detection.ftcPose.bearing, detection.ftcPose.elevation));
+                    */
                 } else {
+                    /*
                     telemetry.addLine(String.format("\n==== ID %d (Unknown)", detection.id));
                     telemetry.addLine(String.format("Center %6.0f %6.0f   (pixels)", detection.center.x, detection.center.y));
+                    */
                 }
             }
+            /*
             telemetry.addLine("\nkey:\nXYZ = X (Right), Y (Forward), Z (Up) dist.");
             telemetry.addLine("PRY = Pitch, Roll & Yaw (XYZ Rotation)");
             telemetry.addLine("RBE = Range, Bearing & Elevation");
+            */
+            telemetry.addData("Blue Goal Tag Detected:", detectsBlueTag);
+            telemetry.addData("Red Goal Tag Detected:", detectsRedTag);
+            for (int i = 0; i < 3; i++) {
+                telemetry.addData("Artifact Color", artifactColors[i]);
+            }
+
+
 
             //telemetry.addData("Total frame time ms", visionPortal.getTotalFrameTimeMs());
             //telemetry.addData("Pipeline time ms", visionPortal.getPipelineTime());
