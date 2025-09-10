@@ -20,6 +20,7 @@ import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.VisionPortal.StreamFormat;
 import org.firstinspires.ftc.vision.VisionProcessor;
 
+import android.annotation.SuppressLint;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.util.Size;
@@ -31,14 +32,12 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagLibrary;
 import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
 
-
-@Disabled
 @TeleOp(name = "April Tags Test", group = "Robot")
 
 public class AprilTags extends LinearOpMode {
-    private AprilTagProcessor aprilTag;
 
-    @Override
+    @SuppressLint("DefaultLocale")
+	@Override
     public void runOpMode() {
         WebcamName webcamName = hardwareMap.get(WebcamName.class, "Webcam 1");
 
@@ -46,7 +45,7 @@ public class AprilTags extends LinearOpMode {
 
         AprilTagLibrary gameTagLibrary = AprilTagGameDatabase.getDecodeTagLibrary();
 
-        aprilTag = new AprilTagProcessor.Builder()
+        AprilTagProcessor aprilTag= new AprilTagProcessor.Builder()
                 .setDrawAxes(true)
                 .setDrawCubeProjection(true)
                 .setDrawTagOutline(true)
@@ -154,7 +153,7 @@ public class AprilTags extends LinearOpMode {
             Mat flippedFrame = new Mat();
 
             // Flip camera feed right side-up
-            Core.flip(frame, flippedFrame, -1);
+            //Core.flip(frame, flippedFrame, -1);
 
             return flippedFrame;
         }
