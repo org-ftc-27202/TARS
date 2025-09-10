@@ -80,7 +80,7 @@ public class AprilTags extends LinearOpMode {
                 if (detection.metadata != null) { // Check if metadata is available
                     if (detection.metadata.id == 20) {
                         detectsBlueTag = true;
-                    } else if (detection.metadata.id == 22) {
+                    } else if (detection.metadata.id == 24) {
                         detectsRedTag = true;
                     }
 
@@ -124,7 +124,7 @@ public class AprilTags extends LinearOpMode {
             */
             telemetry.addData("Blue Goal Tag Detected:", detectsBlueTag);
             telemetry.addData("Red Goal Tag Detected:", detectsRedTag);
-            for (int i = 0; i < 3; i++) {
+            for (int i = 0; i < artifactColors.length; i++) {
                 telemetry.addData("Artifact Color", artifactColors[i]);
             }
 
