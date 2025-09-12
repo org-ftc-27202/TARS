@@ -180,7 +180,18 @@ public class AutoDataStorageUtils {
                         JSONObject jsonObject = new JSONObject(jsonStringContent);
 
                         JSONArray artifactSequence = jsonObject.getJSONArray("artifactSequence");
-                        dstArtifactSequence.setSequence(jsonArrayToStringArray(artifactSequence)); //todo
+
+                        if (artifactSequence.length() != 3) {
+                            throw new IllegalArgumentException("Artifact sequence must have 3 elements");
+                        }
+
+                        String[] stringSeq = new String[3];
+
+                        for (int i = 0; i < artifactSequence.length(); i++) {
+                            stringSeq[i] = artifactSequence.getString(i);
+                        }
+
+                        dstArtifactSequence.setSequence(stringSeq);
 
                         JSONObject coords = jsonObject.getJSONObject("endingPosition");
 
