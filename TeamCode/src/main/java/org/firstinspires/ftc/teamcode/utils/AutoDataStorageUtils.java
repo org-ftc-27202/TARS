@@ -1,4 +1,9 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.utils;
+
+import org.firstinspires.ftc.teamcode.utils.DecodeDataTypes.ArtifactSequence;
+import org.firstinspires.ftc.teamcode.utils.DecodeDataTypes.Coords;
+import org.firstinspires.ftc.teamcode.utils.DecodeDataTypes.DateMs;
+import org.firstinspires.ftc.teamcode.utils.DecodeDataTypes.MotorPositions;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -14,12 +19,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import java.util.Arrays;
-
-import org.opencv.core.Core;
-import org.opencv.core.Mat;
-import org.opencv.core.Scalar;
-
 import androidx.annotation.NonNull;
 
 import org.json.JSONArray;
@@ -33,146 +32,6 @@ public class AutoDataStorageUtils {
 
     }
 
-    public enum ArtifactColor {
-        GREEN,
-        PURPLE
-    }
-
-    public static class ArtifactSequence {
-        ArtifactColor[] sequence;
-
-        public ArtifactSequence() {
-
-        }
-
-        public ArtifactSequence(ArtifactColor[] sequence) {
-            this.sequence = sequence;
-        }
-
-        public ArtifactColor[] getSequence() {
-            return sequence;
-        }
-
-        public void setSequence(@NonNull ArtifactColor[] sequence) {
-            if (sequence.length != 3) {
-                throw new IllegalArgumentException("Sequence must have 3 elements");
-            }
-            this.sequence = sequence;
-        }
-
-        public String toString(int index) {
-            if (index < 0 || index >= sequence.length) {
-                throw new IllegalArgumentException("Index out of bounds");
-            }
-
-            ArtifactColor color = sequence[index];
-
-            switch (color) {
-                case GREEN:
-                    return "GREEN";
-                case PURPLE:
-                    return "PURPLE";
-            }
-            throw new IllegalStateException("Unexpected ArtifactColor value: " + color);
-        }
-    }
-
-    public static class Coords {
-        double x;
-        double y;
-        double z;
-        double pitch;
-        double roll;
-        double yaw;
-
-        public void setCoords(double x, double y, double z, double pitch, double roll, double yaw) {
-            this.x = x;
-            this.y = y;
-            this.z = z;
-            this.pitch = pitch;
-            this.roll = roll;
-            this.yaw = yaw;
-        }
-    }
-
-    public static class DateMs {
-        private long date_ms;
-
-        public DateMs(long init_ms) {
-            date_ms = init_ms;
-        }
-
-        public long getDateMs() {
-            return date_ms;
-        }
-
-        public void setDateMs(long new_ms) {
-            date_ms = new_ms;
-        }
-
-        public double getMinutesTimeSince() {
-            long differenceMillis = System.currentTimeMillis() - date_ms;
-            return (double) differenceMillis / 1000 / 60;
-        }
-    }
-
-    public static class MotorPositions {
-        private Map<String, Double> motorPositions = new LinkedHashMap<>();
-
-        private MotorPositions(Builder builder) {
-            this.motorPositions = builder.motorPositions;
-        }
-
-        public static class Builder {
-            private Map<String, Double> motorPositions = new LinkedHashMap<>();
-
-            public Builder() {
-
-            }
-
-            public Builder addMotor(String motorName, double position) {
-                if (motorName == null) {
-                    throw new IllegalArgumentException("Motor name cannot be null in Builder.");
-                }
-
-                motorPositions.put(motorName, position);
-
-                return this;
-            }
-
-            public MotorPositions build() {
-                return new MotorPositions(this);
-            }
-        }
-
-        public void addMotorPosition(String motorName, double position) {
-            if (motorName == null) {
-                throw new IllegalArgumentException("Motor name cannot be null.");
-            }
-
-            motorPositions.put(motorName, position);
-        }
-
-        public double getMotorPosition(@NonNull String motorName) {
-            if (motorPositions.containsKey(motorName)) {
-                return motorPositions.get(motorName);
-            } else {
-                throw new IllegalArgumentException("Motor '" + motorName + "' not found");
-            }
-        }
-
-        public List<Map.Entry<String, Double>> getEntries(int n) {
-            if (motorPositions instanceof LinkedHashMap) {
-                if (n < 0 || n >= motorPositions.size()) {
-                    throw new IndexOutOfBoundsException("Index " + n + " is out of bounds for map size " + motorPositions.size());
-                }
-
-                return new ArrayList<>(motorPositions.entrySet());
-            } else {
-                throw new IllegalStateException("MotorPositions needs to be a LinkedHashMap");
-            }
-        }
-    }
 
     public static class DataStorageContainer {
         private final Context appContext;
@@ -206,17 +65,18 @@ public class AutoDataStorageUtils {
             return motorPositionsJson.toString();
         }
 
-        public String getJsonFromArguments(Coords coords, MotorPositions motorPositions, DateMs dateMs) {
+        public String getJsonFromArguments(ArtifactSequence artifactSequence, Coords coords, MotorPositions motorPositions, DateMs dateMs) {
+            String[] seqString = artifactSequence.toStringArray();
             return
                 "{\n" +
-                "  \"artifactSequence\": [\"GREEN\", \"PURPLE\", \"PURPLE\"],\n" +
+                "  \"artifactSequence\": [\"" + seqString[0] + "\", \"" + seqString[1] + "\", \"" + seqString[2] + "\"],\n" +
                 "  \"endingPosition\": {\n" +
-                "    \"x\": " + coords.x + ",\n" +
-                "    \"y\": " + coords.y + ",\n" +
-                "    \"z\": " + coords.z + ",\n" +
-                "    \"pitch\": " + coords.pitch + ",\n" +
-                "    \"roll\": " + coords.roll + ",\n" +
-                "    \"yaw\": " + coords.yaw + "\n" +
+                "    \"x\": " + coords.getX() + ",\n" +
+                "    \"y\": " + coords.getY() + ",\n" +
+                "    \"z\": " + coords.getZ() + ",\n" +
+                "    \"pitch\": " + coords.getPitch() + ",\n" +
+                "    \"roll\": " + coords.getRoll() + ",\n" +
+                "    \"yaw\": " + coords.getYaw() + "\n" +
                 "  },\n" +
                 "  \"motorPositions\": [\n" +
                 getJsonFromMotorPositions(motorPositions) +
@@ -225,8 +85,8 @@ public class AutoDataStorageUtils {
                 "}";
         }
 
-        public void writeToInternalStorage(@NonNull String filename, @NonNull Coords coords, @NonNull MotorPositions motorPositions, @NonNull DateMs dateMs) {
-            String jsonStringContent = getJsonFromArguments(coords, motorPositions, dateMs);
+        public void writeToInternalStorage(@NonNull String filename, @NonNull ArtifactSequence artifactSequence, @NonNull Coords coords, @NonNull MotorPositions motorPositions, @NonNull DateMs dateMs) {
+            String jsonStringContent = getJsonFromArguments(artifactSequence, coords, motorPositions, dateMs);
             FileOutputStream fos = null;
 
             try {
@@ -312,12 +172,15 @@ public class AutoDataStorageUtils {
             return doubleArray;
         }
 
-        public boolean readAndParseAutoData(String filename, Coords dstCoords, MotorPositions dstMotorPositions, DateMs dstDateMs) {
+        public boolean readAndParseAutoData( String filename, ArtifactSequence dstArtifactSequence, Coords dstCoords, MotorPositions dstMotorPositions, DateMs dstDateMs) {
             try {
                 String jsonStringContent = readFromJsonInternalStorage(filename);
                 if (!jsonStringContent.isEmpty()) {
                     try {
                         JSONObject jsonObject = new JSONObject(jsonStringContent);
+
+                        JSONArray artifactSequence = jsonObject.getJSONArray("artifactSequence");
+                        dstArtifactSequence.setSequence(jsonArrayToStringArray(artifactSequence)); //todo
 
                         JSONObject coords = jsonObject.getJSONObject("endingPosition");
 
