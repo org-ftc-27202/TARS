@@ -9,6 +9,11 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import android.content.Context;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 import java.util.Arrays;
 
 import org.opencv.core.Core;
@@ -28,99 +33,65 @@ public class AutoDataStorageUtils {
 
     }
 
-    public static class HsvChannelBounds {
-        private Scalar lowerBounds;
-        private Scalar upperBounds;
+    public enum ArtifactColor {
+        GREEN,
+        PURPLE
+    }
 
-        public HsvChannelBounds(double[] initLowerBounds, double[] initUpperBounds) {
-            if (initLowerBounds == null || initUpperBounds == null) {
-                throw new IllegalArgumentException("lowerBounds and upperBounds cannot be null");
+    public static class ArtifactSequence {
+        ArtifactColor[] sequence;
+
+        public ArtifactSequence() {
+
+        }
+
+        public ArtifactSequence(ArtifactColor[] sequence) {
+            this.sequence = sequence;
+        }
+
+        public ArtifactColor[] getSequence() {
+            return sequence;
+        }
+
+        public void setSequence(@NonNull ArtifactColor[] sequence) {
+            if (sequence.length != 3) {
+                throw new IllegalArgumentException("Sequence must have 3 elements");
+            }
+            this.sequence = sequence;
+        }
+
+        public String toString(int index) {
+            if (index < 0 || index >= sequence.length) {
+                throw new IllegalArgumentException("Index out of bounds");
             }
 
-            if (initLowerBounds.length != 3 || initUpperBounds.length != 3) {
-                throw new IllegalArgumentException("lowerBounds and upperBounds must have 3 elements");
+            ArtifactColor color = sequence[index];
+
+            switch (color) {
+                case GREEN:
+                    return "GREEN";
+                case PURPLE:
+                    return "PURPLE";
             }
-
-            this.lowerBounds = new Scalar(initLowerBounds[0], initLowerBounds[1], initLowerBounds[2]);
-            this.upperBounds = new Scalar(initUpperBounds[0], initUpperBounds[1], initUpperBounds[2]);
+            throw new IllegalStateException("Unexpected ArtifactColor value: " + color);
         }
+    }
 
-        public Scalar getLowerBounds() {
-            return new Scalar(lowerBounds.val[0], lowerBounds.val[1], lowerBounds.val[2]);
-        }
+    public static class Coords {
+        double x;
+        double y;
+        double z;
+        double pitch;
+        double roll;
+        double yaw;
 
-        public double[] getLowerBoundsArray() {
-            return Arrays.copyOf(new double[] {lowerBounds.val[0], lowerBounds.val[1], lowerBounds.val[2]}, 3);
-        }
-
-        public Scalar getUpperBounds() {
-            return new Scalar(upperBounds.val[0], upperBounds.val[1], upperBounds.val[2]);
-        }
-
-        public double[] getUpperBoundsArray() {
-            return Arrays.copyOf(new double[] {upperBounds.val[0], upperBounds.val[1], upperBounds.val[2]}, 3);
-        }
-
-        public void setLowerBounds(double[] newLowerBounds) {
-            if (newLowerBounds == null) {
-                throw new IllegalArgumentException("lowerBounds cannot be null");
-            }
-
-            if (newLowerBounds.length != 3) {
-                throw new IllegalArgumentException("lowerBounds must have 3 elements");
-            }
-
-            lowerBounds = new Scalar(newLowerBounds[0], newLowerBounds[1], newLowerBounds[2]);
-        }
-
-        public void setUpperBounds(double[] newUpperBounds) {
-            if (newUpperBounds == null) {
-                throw new IllegalArgumentException("upperBounds cannot be null");
-            }
-
-            if (newUpperBounds.length != 3) {
-                throw new IllegalArgumentException("upperBounds must have 3 elements");
-            }
-
-            upperBounds = new Scalar(newUpperBounds[0], newUpperBounds[1], newUpperBounds[2]);
-        }
-
-        public void setBounds(double[] newLowerBounds, double[] newUpperBounds) {
-            setLowerBounds(newLowerBounds);
-            setUpperBounds(newUpperBounds);
-        }
-
-        public void hsvMatInRange(Mat src, Mat output) {
-            double lowerBoundsH = lowerBounds.val[0];
-            double upperBoundsH = upperBounds.val[0];
-
-            if (lowerBoundsH > upperBoundsH) {
-                // Handling HSV wrap-around for hues (ex. red)
-                Mat withinBounds0 = new Mat();
-                Mat withinBounds1 = new Mat();
-
-                // lowerBoundsH to Max Hue
-                Core.inRange(src,
-                        new Scalar(lowerBoundsH, lowerBounds.val[1], lowerBounds.val[2]),
-                        new Scalar(179, upperBounds.val[1], upperBounds.val[2]),
-                        withinBounds0);
-
-                // Min Hue to upperBoundsH
-                Core.inRange(src,
-                        new Scalar(0, lowerBounds.val[1], lowerBounds.val[2]),
-                        new Scalar(upperBoundsH, upperBounds.val[1], upperBounds.val[2]),
-                        withinBounds1);
-
-                // Combine the 2 masks
-                Core.add(withinBounds0, withinBounds1, output);
-
-                //Releasing temporary Mat objects from memory
-                withinBounds0.release();
-                withinBounds1.release();
-            } else {
-                // Standard HSV range
-                Core.inRange(src, lowerBounds, upperBounds, output);
-            }
+        public void setCoords(double x, double y, double z, double pitch, double roll, double yaw) {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            this.pitch = pitch;
+            this.roll = roll;
+            this.yaw = yaw;
         }
     }
 
@@ -145,11 +116,70 @@ public class AutoDataStorageUtils {
         }
     }
 
-    public static class CalibrationDataStorage {
+    public static class MotorPositions {
+        private Map<String, Double> motorPositions = new LinkedHashMap<>();
+
+        private MotorPositions(Builder builder) {
+            this.motorPositions = builder.motorPositions;
+        }
+
+        public static class Builder {
+            private Map<String, Double> motorPositions = new LinkedHashMap<>();
+
+            public Builder() {
+
+            }
+
+            public Builder addMotor(String motorName, double position) {
+                if (motorName == null) {
+                    throw new IllegalArgumentException("Motor name cannot be null in Builder.");
+                }
+
+                motorPositions.put(motorName, position);
+
+                return this;
+            }
+
+            public MotorPositions build() {
+                return new MotorPositions(this);
+            }
+        }
+
+        public void addMotorPosition(String motorName, double position) {
+            if (motorName == null) {
+                throw new IllegalArgumentException("Motor name cannot be null.");
+            }
+
+            motorPositions.put(motorName, position);
+        }
+
+        public double getMotorPosition(@NonNull String motorName) {
+            if (motorPositions.containsKey(motorName)) {
+                return motorPositions.get(motorName);
+            } else {
+                throw new IllegalArgumentException("Motor '" + motorName + "' not found");
+            }
+        }
+
+        public List<Map.Entry<String, Double>> getEntries(int n) {
+            if (motorPositions instanceof LinkedHashMap) {
+                if (n < 0 || n >= motorPositions.size()) {
+                    throw new IndexOutOfBoundsException("Index " + n + " is out of bounds for map size " + motorPositions.size());
+                }
+
+                return new ArrayList<>(motorPositions.entrySet());
+            } else {
+                throw new IllegalStateException("MotorPositions needs to be a LinkedHashMap");
+            }
+        }
+    }
+
+    public static class DataStorageContainer {
         private final Context appContext;
 
         private final File internalFilesDir;
-        public CalibrationDataStorage(Context context) {
+
+        public DataStorageContainer(Context context) {
             if (context == null) {
                 throw new IllegalArgumentException("Context cannot be null");
             }
@@ -161,37 +191,42 @@ public class AutoDataStorageUtils {
             return internalFilesDir.getAbsolutePath();
         }
 
-        @NonNull
-        private String getCalibrationJson(HsvChannelBounds rBounds, HsvChannelBounds yBounds, HsvChannelBounds bBounds, DateMs date_ms) {
-            double[] r_lower = rBounds.getLowerBoundsArray();
-            double[] r_upper = rBounds.getUpperBoundsArray();
-            double[] y_lower = yBounds.getLowerBoundsArray();
-            double[] y_upper = yBounds.getUpperBoundsArray();
-            double[] b_lower = bBounds.getLowerBoundsArray();
-            double[] b_upper = bBounds.getUpperBoundsArray();
-
-            return
-                    "{\n" +
-                            "   \"calibration_values\": {\n" +
-                            "       \"red\": {\n" +
-                            "           \"lower_bounds\": [" + r_lower[0] + ", " + r_lower[1] + ", " + r_lower[2] + "],\n" +
-                            "           \"upper_bounds\": [" + r_upper[0] + ", " + r_upper[1] + ", " + r_upper[2] + "]\n" +
-                            "       },\n" +
-                            "       \"yellow\": {\n" +
-                            "           \"lower_bounds\": [" + y_lower[0] + ", " + y_lower[1] + ", " + y_lower[2] + "],\n" +
-                            "           \"upper_bounds\": [" + y_upper[0] + ", " + y_upper[1] + ", " + y_upper[2] + "]\n" +
-                            "       },\n" +
-                            "       \"blue\": {\n" +
-                            "           \"lower_bounds\": [" + b_lower[0] + ", " + b_lower[1] + ", " + b_lower[2] + "],\n" +
-                            "           \"upper_bounds\": [" + b_upper[0] + ", " + b_upper[1] + ", " + b_upper[2] + "]\n" +
-                            "       }\n" +
-                            "   },\n" +
-                            "   \"calibration_date_ms\": " + date_ms.getDateMs() + "\n" +
-                            "}";
+        public String getJsonFromMotorPositions(MotorPositions motorPositions) {
+            StringBuilder motorPositionsJson = new StringBuilder();
+            List<Map.Entry<String, Double>> motorPositionEntries = motorPositions.getEntries(0);
+            for (int i = 0; i < motorPositionEntries.size(); i++) {
+                motorPositionsJson
+                        .append("[\"")
+                        .append(motorPositionEntries.get(i).getKey())
+                        .append(", ")
+                        .append(motorPositionEntries.get(i).getValue())
+                        .append((i != motorPositionEntries.size() - 1) ? "]," : "]")
+                        .append("\n");
+            }
+            return motorPositionsJson.toString();
         }
 
-        public void writeToInternalStorage(String filename, HsvChannelBounds rBounds, HsvChannelBounds yBounds, HsvChannelBounds bBounds, DateMs date_ms) {
-            String jsonStringContent = getCalibrationJson(rBounds, yBounds, bBounds, date_ms);
+        public String getJsonFromArguments(Coords coords, MotorPositions motorPositions, DateMs dateMs) {
+            return
+                "{\n" +
+                "  \"artifactSequence\": [\"GREEN\", \"PURPLE\", \"PURPLE\"],\n" +
+                "  \"endingPosition\": {\n" +
+                "    \"x\": " + coords.x + ",\n" +
+                "    \"y\": " + coords.y + ",\n" +
+                "    \"z\": " + coords.z + ",\n" +
+                "    \"pitch\": " + coords.pitch + ",\n" +
+                "    \"roll\": " + coords.roll + ",\n" +
+                "    \"yaw\": " + coords.yaw + "\n" +
+                "  },\n" +
+                "  \"motorPositions\": [\n" +
+                getJsonFromMotorPositions(motorPositions) +
+                "  ],\n" +
+                "  \"saveDateMillis\": " + dateMs.getDateMs() + "\n" +
+                "}";
+        }
+
+        public void writeToInternalStorage(@NonNull String filename, @NonNull Coords coords, @NonNull MotorPositions motorPositions, @NonNull DateMs dateMs) {
+            String jsonStringContent = getJsonFromArguments(coords, motorPositions, dateMs);
             FileOutputStream fos = null;
 
             try {
@@ -200,8 +235,6 @@ public class AutoDataStorageUtils {
                 // Context.MODE_APPEND: If the file already exists, data will be appended to the end.
 
                 fos.write(jsonStringContent.getBytes(StandardCharsets.UTF_8));
-                // Telemetry or Log.d to confirm save
-                // telemetry.addData("Internal Storage", "Saved to " + FILENAME);
             } catch (IOException e) {
                 e.printStackTrace();
                 // telemetry.addData("Internal Storage", "Error saving: " + e.getMessage());
@@ -251,6 +284,20 @@ public class AutoDataStorageUtils {
             return fileContent;
         }
 
+        public String[] jsonArrayToStringArray(JSONArray array) {
+            String[] stringArray = new String[array.length()];
+            try {
+                for (int i = 0; i < array.length(); i++) {
+                    stringArray[i] = array.getString(i);
+                }
+                return stringArray;
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+            // Returning an empty array doesn't matter because it will catch error in other function anyways
+            return stringArray;
+        }
+
         public double[] jsonArrayToDoubleArray(JSONArray array) {
             double[] doubleArray = new double[array.length()];
             try {
@@ -265,33 +312,36 @@ public class AutoDataStorageUtils {
             return doubleArray;
         }
 
-        public boolean readAndParseCalibrationData(String filename, HsvChannelBounds rBounds, HsvChannelBounds yBounds, HsvChannelBounds bBounds, DateMs date_ms) {
+        public boolean readAndParseAutoData(String filename, Coords dstCoords, MotorPositions dstMotorPositions, DateMs dstDateMs) {
             try {
                 String jsonStringContent = readFromJsonInternalStorage(filename);
                 if (!jsonStringContent.isEmpty()) {
                     try {
                         JSONObject jsonObject = new JSONObject(jsonStringContent);
 
-                        JSONObject calibrationValues = jsonObject.getJSONObject("calibration_values");
-                        JSONObject red_bounds = calibrationValues.getJSONObject("red");
-                        JSONObject yellow_bounds = calibrationValues.getJSONObject("yellow");
-                        JSONObject blue_bounds = calibrationValues.getJSONObject("blue");
+                        JSONObject coords = jsonObject.getJSONObject("endingPosition");
 
-                        rBounds.setBounds(
-                                jsonArrayToDoubleArray(red_bounds.getJSONArray("lower_bounds")),
-                                jsonArrayToDoubleArray(red_bounds.getJSONArray("upper_bounds"))
-                        );
-                        yBounds.setBounds(
-                                jsonArrayToDoubleArray(yellow_bounds.getJSONArray("lower_bounds")),
-                                jsonArrayToDoubleArray(yellow_bounds.getJSONArray("upper_bounds"))
-                        );
-                        bBounds.setBounds(
-                                jsonArrayToDoubleArray(blue_bounds.getJSONArray("lower_bounds")),
-                                jsonArrayToDoubleArray(blue_bounds.getJSONArray("upper_bounds"))
+                        dstCoords.setCoords(
+                                coords.getDouble("x"),
+                                coords.getDouble("y"),
+                                coords.getDouble("z"),
+                                coords.getDouble("pitch"),
+                                coords.getDouble("roll"),
+                                coords.getDouble("yaw")
                         );
 
-                        date_ms.setDateMs(jsonObject.getLong("calibration_date_ms"));
-                        // Return Did Fetch Calibration Data
+                        JSONArray motorPositionsArray = jsonObject.getJSONArray("motorPositions");
+
+                        for (int i = 0; i < motorPositionsArray.length(); i++) {
+                            dstMotorPositions.addMotorPosition(
+                                    motorPositionsArray.getString(i),
+                                    motorPositionsArray.getDouble(i)
+                            );
+                        }
+
+                        dstDateMs.setDateMs(jsonObject.getLong("saveDateMillis"));
+
+                        // Return Successful Fetch Calibration Data
                         return true;
                     } catch (JSONException e) {
                         e.printStackTrace();
@@ -301,37 +351,9 @@ public class AutoDataStorageUtils {
                 e.printStackTrace();
             }
 
-            // SOMETHING WENT WRONG, USE DEFAULT VALUES
-            /*
-            rBounds.setBounds(
-                    new double[]{160, 15, 179},
-                    new double[]{9, 255, 255}
-            );
-            yBounds.setBounds(
-                    new double[]{20, 80, 170},
-                    new double[]{40, 255, 255}
-            );
-            bBounds.setBounds(
-                    new double[]{90, 25, 100},
-                    new double[]{140, 255, 255}
-            );
-            date_ms.setDateMs(System.currentTimeMillis());
-            // todo: change the date_ms to an accurate date
-            */
-            //USING 1s FOR DEBUGGING
-            rBounds.setBounds(
-                    new double[]{1, 1, 1},
-                    new double[]{1, 1, 1}
-            );
-            yBounds.setBounds(
-                    new double[]{1, 1, 1},
-                    new double[]{1, 1, 1}
-            );
-            bBounds.setBounds(
-                    new double[]{1, 1, 1},
-                    new double[]{1, 1, 1}
-            );
-            // Return Didn't Fetch Calibration Data
+            // SOMETHING WENT WRONG, RELY ON ODOMETRY
+
+            // Return Failure Fetch Calibration Data
             return false;
         }
     }

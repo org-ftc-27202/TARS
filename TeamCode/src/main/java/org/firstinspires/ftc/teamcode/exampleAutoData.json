@@ -8,5 +8,10 @@
     "roll": 1.0,
     "yaw": 1.0
   },
+  "motorPositions": [
+    ["hoodedShooter", 1.0],
+    ["intake", 1.0],
+    ["arm", 1.0]
+  ],
   "saveDateMillis": 1757604875092
 }
