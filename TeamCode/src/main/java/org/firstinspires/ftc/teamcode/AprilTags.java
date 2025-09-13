@@ -1,5 +1,14 @@
 package org.firstinspires.ftc.teamcode;
 
+import org.firstinspires.ftc.teamcode.utils.DecodeDataTypes.ArtifactColor;
+import org.firstinspires.ftc.teamcode.utils.DecodeDataTypes.ArtifactSequence;
+import org.firstinspires.ftc.teamcode.utils.DecodeDataTypes.Coords;
+import org.firstinspires.ftc.teamcode.utils.DecodeDataTypes.DateMs;
+import org.firstinspires.ftc.teamcode.utils.DecodeDataTypes.MotorPositions;
+
+import org.firstinspires.ftc.teamcode.utils.FtcJsonStorage;
+
+import java.lang.reflect.Array;
 import java.util.List;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -13,7 +22,6 @@ import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.VisionPortal.StreamFormat;
 import org.firstinspires.ftc.vision.VisionProcessor;
 
-import android.annotation.SuppressLint;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.util.Size;
@@ -28,12 +36,6 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
 @TeleOp(name = "April Tags Test", group = "Robot")
 
 public class AprilTags extends LinearOpMode {
-    enum ArtifactColors {
-        GREEN,
-        PURPLE
-    }
-
-    @SuppressLint("DefaultLocale")
 	@Override
     public void runOpMode() {
         WebcamName webcamName = hardwareMap.get(WebcamName.class, "Webcam 1");
@@ -67,14 +69,43 @@ public class AprilTags extends LinearOpMode {
         // Wait for the user to press start on the Driver Station
         waitForStart();
 
+        FtcJsonStorage storage = new FtcJsonStorage(hardwareMap.appContext);
+
+        /*
+        storage.writeToInternalStorage(
+                "autoData.json",
+                ArtifactSequence.of(ArtifactColor.GREEN, ArtifactColor.PURPLE, ArtifactColor.PURPLE),
+                new Coords(1.0, 2.0, 3.0, 4.0, 5.0, 6.0),
+                new MotorPositions.Builder()
+                        .addMotor("hoodedShooter", 1.0)
+                        .addMotor("carouselPaddles", 2.0)
+                        .addMotor("botFlipper", 3.0)
+                        .build(),
+                new DateMs(System.currentTimeMillis())
+        );*/
+
+        ArtifactSequence artifactSequence = new ArtifactSequence();
+        Coords coords = new Coords();
+        MotorPositions motorPositions = new MotorPositions.Builder().build();
+        DateMs dateMs = new DateMs();
+
+        boolean read = storage.readAndParseAutoData("autoData.json", artifactSequence, coords, motorPositions, dateMs);
+
         while (opModeIsActive()) {
+            telemetry.addData("read", read);
+            //telemetry.addData("Artifact sequence", artifactSequence.toStringArray());
+            //telemetry.addData("Coords", coords.getX() + ", " + coords.getY() + ", " + coords.getZ() + ", " + coords.getPitch() + ", " + coords.getRoll() + ", " + coords.getYaw());
+            //telemetry.addData("Motor positions", motorPositions.getMotorPosition("hoodedShooter") + ", " + motorPositions.getMotorPosition("carouselPaddles") + ", " + motorPositions.getMotorPosition("botFlipper"));
+            //telemetry.addData("Date ms", dateMs.getMinutesTimeSince());
+
+
             List<AprilTagDetection> currentDetections = aprilTag.getDetections();
             telemetry.addData("# AprilTags Detected", currentDetections.size());
 
             // Loop through each detection and display its info
             boolean detectsBlueTag = false; //id 20
             boolean detectsRedTag = false; //id 24
-            ArtifactColors[] artifactColors = new ArtifactColors[0];
+            ArtifactSequence artifactColors;
 
             for (AprilTagDetection detection : currentDetections) {
                 if (detection.metadata != null) { // Check if metadata is available
@@ -86,23 +117,24 @@ public class AprilTags extends LinearOpMode {
 
                     switch (detection.metadata.id) {
                         case 21:
-                            artifactColors = new ArtifactColors[]{
-                                    ArtifactColors.GREEN,
-                                    ArtifactColors.PURPLE,
-                                    ArtifactColors.PURPLE
-                            };
+                            artifactColors = ArtifactSequence.of(
+                                ArtifactColor.GREEN,
+                                ArtifactColor.PURPLE,
+                                ArtifactColor.PURPLE
+                            );
+
                         case 22:
-                            artifactColors = new ArtifactColors[]{
-                                    ArtifactColors.PURPLE,
-                                    ArtifactColors.GREEN,
-                                    ArtifactColors.PURPLE
-                            };
+                            artifactColors = ArtifactSequence.of(
+                                    ArtifactColor.PURPLE,
+                                    ArtifactColor.GREEN,
+                                    ArtifactColor.PURPLE
+                            );
                         case 23:
-                            artifactColors = new ArtifactColors[]{
-                                    ArtifactColors.PURPLE,
-                                    ArtifactColors.PURPLE,
-                                    ArtifactColors.GREEN
-                            };
+                            artifactColors = ArtifactSequence.of(
+                                    ArtifactColor.PURPLE,
+                                    ArtifactColor.PURPLE,
+                                    ArtifactColor.GREEN
+                            );
                     }
 
                     telemetry.addLine(String.format("\n==== ID %d (%s)", detection.id, detection.metadata.name));
@@ -123,9 +155,7 @@ public class AprilTags extends LinearOpMode {
             */
             telemetry.addData("Blue Goal Tag Detected:", detectsBlueTag);
             telemetry.addData("Red Goal Tag Detected:", detectsRedTag);
-            for (int i = 0; i < artifactColors.length; i++) {
-                telemetry.addData("Artifact Color", artifactColors[i]);
-            }
+            //telemetry.addData("Artifact Color", artifactColors[i]);
 
 
 
